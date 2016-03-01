@@ -6,6 +6,8 @@ L.Edit = L.Edit || {};
 
 L.Edit.Poly = L.Edit.Path.extend({
 
+    SHAPE_TYPE: 'Poly',
+
 	_initMarkers : function() {
 		L.Edit.Path.prototype._initMarkers.call(this);
 		this._createEdgeMarkers();
@@ -16,6 +18,10 @@ L.Edit.Poly = L.Edit.Path.extend({
 
 		var latlngs = this._shape._latlngs,
 			i, j, len, marker;
+
+        if (this._isRectangle) {
+			return;
+		}
 
 		// TODO refactor holes implementation in Polygon to support it here
 

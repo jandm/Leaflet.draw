@@ -10,13 +10,13 @@ L.EditToolbar = L.Toolbar.extend({
 	options: {
 		edit: {
 			selectedPathOptions: {
-				color: '#fe57a1', /* Hot pink all the things! */
+				color: '#00afc4',
 				opacity: 0.6,
-				dashArray: '10, 10',
+				dashArray: '3, 3',
 
 				fill: true,
-				fillColor: '#fe57a1',
-				fillOpacity: 0.1,
+				fillColor: '#fff',
+				fillOpacity: 0.3,
 
 				// Whether to user the existing layers color
 				maintainColor: false

@@ -150,11 +150,16 @@ L.EditToolbar.Edit = L.Handler.extend({
 		if (this.options.selectedPathOptions) {
 			pathOptions = L.Util.extend({}, this.options.selectedPathOptions);
 
+			if (L.Edit.LINE_STYLER) {
+				pathOptions = L.Edit.LINE_STYLER(layer, pathOptions);
+			}
+
 			// Use the existing color of the layer
 			if (pathOptions.maintainColor) {
 				pathOptions.color = layer.options.color;
 				pathOptions.fillColor = layer.options.fillColor;
 			}
+
 
 			layer.options.original = L.extend({}, layer.options);
 			layer.options.editing = pathOptions;

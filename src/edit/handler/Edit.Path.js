@@ -1,15 +1,22 @@
+var rad2deg = function(rad) {
+return Math.round(rad * 180 / Math.PI, 0);
+}
+
 L.Edit = L.Edit || {};
 
 L.Edit.Path = L.Edit.SimpleShape.extend({
+
+  SHAPE_TYPE: 'Path',
 
 	_createMoveMarker: function () {
 		this._moveMarker = this._createMarker(this._getCenter(), this.options.moveIcon);
 	},
 
 	_createResizeMarker: function () {
+		this._resizeMarkers = [];
 		var corners = this._getCorners();
 
-		this._resizeMarkers = [];
+		return; // disable resize
 
 		for (var i = 0, l = corners.length; i < l; i++) {
 			this._resizeMarkers.push(this._createMarker(corners[i], this.options.resizeIcon));
@@ -18,20 +25,59 @@ L.Edit.Path = L.Edit.SimpleShape.extend({
 		}
 	},
 
-	_createRotateMarker: function () {
-		var center = this._getCenter();
+    _createRotateMarker: function(latlng) {
+		var style, guess;
 
-		this._rotateMarker = this._createMarker(center, this.options.rotateIcon, 0, -100);
-		this._rotateLine = L.lineMarker(center, 0, -100,{
-			dashArray: [10, 7],
-			color: 'black',
+		if (!this._isRectangle) {
+			// only enable rotate for rectangle
+			return;
+		}
+
+		if (!this._angle) {
+			this._angle = Math.PI;
+			// Find smallest initial angle
+			for (var i = 0; i < 4; i++) {
+			  guess = this._guessAngle(i);
+			  if (
+				guess.dx >= 0 && guess.dy <= 0
+				// try to make rotate hanler in first quarter
+			  ) {
+				this._angle = guess.angle;
+				this._rotateIndex = i;
+				this._dx = guess.dx;
+				this._dy = guess.dy;
+			  }
+			}
+		} else {
+		  guess = this._guessAngle(this._rotateIndex);
+		  this._angle = guess.angle;
+		  this._dx = guess.dx;
+		  this._dy = guess.dy;
+		}
+
+		this._rotateMarker = this._createMarker(
+			this._getCenter(),
+			this.options.rotateIcon,
+			this._dx * 1.5, this._dy * 1.5
+		);
+		if (L.Edit.LINE_STYLER) {
+		  style = L.Edit.LINE_STYLER(this);
+		} else {
+		  style = {
+			dashArray: [3, 3],
+			color: '#00afc4',
 			weight: 2
-		});
-		this._angle = 0;
-
+		  };
+		}
+		// rotate line will from center to middle of NE - NW line
+		this._rotateLine = L.lineMarker(
+			this._getCenter(),
+			this._dx * 1.5, this._dy * 1.5,
+			style
+		);
 		this._bindMarker(this._rotateLine);
-		this._markerGroup.addLayer(this._rotateLine);
-	},
+		return this._markerGroup.addLayer(this._rotateLine);
+	  },
 
 	_onMarkerDragStart: function (e) {
 		L.Edit.SimpleShape.prototype._onMarkerDragStart.call(this, e);
@@ -112,22 +158,29 @@ L.Edit.Path = L.Edit.SimpleShape.extend({
 	},
 
 	_repositionAllMarkers: function () {
-		var corners = this._getCorners();
+		var corners = this._getCorners(),
+			center = this._getCenter();
 
-		for (var i = 0, l = this._resizeMarkers.length; i < l; i++) {
-			this._resizeMarkers[i].setLatLng(corners[i]);
+		if (this._resizeMarkers) {
+			for (var i = 0, l = this._resizeMarkers.length; i < l; i++) {
+				this._resizeMarkers[i].setLatLng(corners[i]);
+			}
 		}
+		if (this._moveMarker) {
+			this._moveMarker.setLatLng(this._getCenter());
+		}
+		if (this._rotateMarker) {
+			var angle = - this._angle;
+			var rotateLength = 1.5 * Math.sqrt(this._dx * this._dx + this._dy * this._dy);
+			var dx = - rotateLength * Math.sin(angle),
+				dy = - rotateLength * Math.cos(angle);
+			console.log('Positioning', Math.floor(dx), Math.floor(dy), rad2deg(angle));
+			this._rotateMarker.setLatLng(center);
+			this._rotateMarker.setOffset(dx, dy);
 
-		this._moveMarker.setLatLng(this._getCenter());
-
-		var dx = 100 * Math.sin(this._angle), dy = -100 * Math.cos(this._angle);
-
-		this._rotateMarker.setLatLng(this._getCenter());
-		this._rotateMarker.setOffset(dx, dy);
-
-		this._rotateLine.setLatLng(this._getCenter());
-		this._rotateLine.setMoveTo(dx, dy);
-
+			this._rotateLine.setLatLng(center);
+			this._rotateLine.setMoveTo(dx, dy);
+		}
 	},
 
 	_getPrjs: function() {
